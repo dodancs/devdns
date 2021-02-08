@@ -113,6 +113,7 @@ set_container_record(){
   name=$(get_name "$cid")
   safename=$(get_safe_name "$name")
   record="${safename}.${domain}"
+  set_record "$safename" "$ip"
   set_record "$record" "$ip"
 }
 find_and_set_prev_record(){
