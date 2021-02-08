@@ -12,7 +12,7 @@ containers from the host machine**.
 
 ```sh
 docker run -d --name devdns -p 53:53/udp \
-      -v /var/run/docker.sock:/var/run/docker.sock:ro ruudud/devdns
+      -v /var/run/docker.sock:/var/run/docker.sock:ro dodancs/devdns
 ```
 
 devdns requires access to the Docker socket to be able to query for container
@@ -23,7 +23,7 @@ configuring local resolving.
 
 The DNS server running in devdns is set to proxy requests for unknown hosts to
 the configured fallback DNS (default Google's DNS server 8.8.8.8).
-It also adds a wildcard record (normally `*.test`, see `DNS_DOMAIN` below)
+It also adds a wildcard record (normally `*.docker`, see `DNS_DOMAIN` below)
 pointing back at the host machine (bridge IP in Linux), to facilitate
 communication when running a combination of services "inside" and "outside" of
 Docker.
@@ -37,11 +37,11 @@ use:
 
 ```sh
 $ docker run -d --name devdns -p 53:53/udp \
-  -v /var/run/docker.sock:/var/run/docker.sock:ro ruudud/devdns
+  -v /var/run/docker.sock:/var/run/docker.sock:ro dodancs/devdns
 $ docker run -d --name redis redis:alpine
 $ docker run -it --rm \
   --dns=`docker inspect -f "{{ range.NetworkSettings.Networks }}{{ .IPAddress }}{{ end }}" devdns | head -n1` alpine \
-  ping redis.test
+  ping redis.docker
 ```
 
 Please note that the `--dns` flag will prepend the given DNS server to the
@@ -61,9 +61,9 @@ daemon and/or the underlying OS:
 
 The extra flags you'll have to add are
 
-    --dns 172.17.0.1 --dns-search test
+    --dns 172.17.0.1 --dns-search docker
 
-Replace `test` with whatever you set as config for `DNS_DOMAIN`.
+Replace `docker` with whatever you set as config for `DNS_DOMAIN`.
 
 `172.17.0.1` is the default IP of the Docker bridge, and port 53 on this host
 should be reachable from within all started containers given that you've
@@ -94,7 +94,7 @@ below](#networkmanager-on-ubuntu)), WICD, or manually using
 ```
 auto p3p1
 iface p3p1 inet dhcp
-dns-search test
+dns-search docker
 dns-nameservers 127.0.0.1
 ```
 
@@ -105,7 +105,7 @@ Another solution is mounting the host machine's `/etc/resolv.conf` at
 ```sh
 docker run -d -v /var/run/docker.sock:/var/run/docker.sock:ro \
       -v /etc/resolv.conf:/mnt/resolv.conf \
-      ruudud/devdns
+      dodancs/devdns
 ```
 
 Example config prepended to `/etc/resolv.conf`:
@@ -126,19 +126,20 @@ Create a file `/etc/resolver/test` containing
 
 In OSX and Docker for Mac, port binding should work directly on the host
 machine. Please note that the name of the file created in `/etc/resolver` has
-to match the value of the `DNS_DOMAIN` setting (default "test").
+to match the value of the `DNS_DOMAIN` setting (default "docker").
 
 
 ## Configuration
 
- * `DNS_DOMAIN`: set the local domain used. (default: **test**)
- * `FALLBACK_DNS`: set the DNS used for unknown hosts. (default: **8.8.8.8**)
+ * `DNS_DOMAIN`: set the local domain used. (default: **docker**)
+ * `FALLBACK_DNS`: set the DNS used for unknown hosts. (default: **1.1.1.1**)
  * `HOSTMACHINE_IP`: IP address of non-matching queries (default:
    **172.17.0.1**)
  * `EXTRA_HOSTS`: list of extra records to create, space-separated string of
    host=ip pairs. (default: **''**)
- * `NAMING`: set to "full" to convert `_` to `-` (default: up to first `_` of
-   container name)
+ * `NAMING`: set to "full" to never convert. Use "repl" to convert `_` to `-`.
+   Use "default" to only keep up to first `_` of container name.
+   (default: full container name)
  * `NETWORK`: set the network to use. Set to "auto" to automatically use the
    first network interface (e.g. when using docker-compose) (default:
    **bridge**)
@@ -152,7 +153,7 @@ docker run -d -v /var/run/docker.sock:/var/run/docker.sock \
   -e NAMING=full \
   -e NETWORK=mynetwork \
   -e EXTRA_HOSTS="dockerhost=172.17.0.1 doubleclick.net=127.0.0.1" \
-  ruudud/devdns
+  dodancs/devdns
 ```
 
 
@@ -170,16 +171,16 @@ Example:
 ```sh
 # (devdns already running)
 $ docker run -d --name redis_local-V1 redis
-$ dig redis.test     # resolves to the IP of redis_local-V1
+$ dig redis.docker     # resolves to the IP of redis_local-V1
 
 $ docker run -d --name redis_test redis
-$ dig redis.test     # resolves to the IP of redis_test
+$ dig redis.docker     # resolves to the IP of redis_test
 
 $ docker stop redis_test
-$ dig redis.test     # resolves to the IP of redis_local-V1
+$ dig redis.docker     # resolves to the IP of redis_local-V1
 
 $ docker stop redis_local-V1
-$ dig redis.test     # resolves to the IP of the host machine (default)
+$ dig redis.docker     # resolves to the IP of the host machine (default)
 ```
 
 ### NetworkManager on Ubuntu
@@ -196,5 +197,5 @@ Restart using `sudo service network-manager restart`.
 Now you should be able to do
 ```sh
 docker run -d -v /var/run/docker.sock:/var/run/docker.sock:ro \
-    -p 53:53/udp ruudud/devdns
+    -p 53:53/udp dodancs/devdns
 ```

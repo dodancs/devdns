@@ -1,10 +1,10 @@
 #!/bin/bash
 [[ -n "$DEBUG" ]] && set -x
-domain="${DNS_DOMAIN:-test}"
-fallbackdns="${FALLBACK_DNS:-8.8.8.8}"
+domain="${DNS_DOMAIN:-docker}"
+fallbackdns="${FALLBACK_DNS:-1.1.1.1}"
 hostmachineip="${HOSTMACHINE_IP:-172.17.0.1}"
 network="${NETWORK:-bridge}"
-naming="${NAMING:-default}"
+naming="${NAMING:-full}"
 read -r -a extrahosts <<< "$EXTRA_HOSTS"
 
 dnsmasq_pid=""
@@ -60,6 +60,8 @@ get_safe_name(){
   local name="$1"
   case "$naming" in
     full)
+      ;;
+    repl)
       # Replace _ with -, useful when using default Docker naming
       name="${name//_/-}"
       ;;
